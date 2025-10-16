@@ -19,11 +19,11 @@ type getCounter string
 
 const GetCounter getCounter = "GET_COUNTER"
 
-func (t *TestActorReciver) Setup(a *actor.Actor) {
+func (t *TestActorReciver) Setup(a *actor.ReceiverActor) {
 
 }
 
-func (t *TestActorReciver) Receive(a *actor.Actor, msg actor.ActorMessage) {
+func (t *TestActorReciver) Receive(a *actor.ReceiverActor, msg actor.ActorMessage) {
 	t.counter++
 	switch msg.Message.(type) {
 	case string:
@@ -47,14 +47,14 @@ type Transaction struct {
 
 type Producer struct {
 	counter  int
-	consumer *actor.Actor
+	consumer actor.Actor
 }
 
-func (*Producer) Setup(a *actor.Actor) {
+func (*Producer) Setup(a *actor.ReceiverActor) {
 	a.Schedule(Transaction{PRODUCE, ""}, 5*time.Second)
 }
 
-func (p *Producer) Receive(a *actor.Actor, msg actor.ActorMessage) {
+func (p *Producer) Receive(a *actor.ReceiverActor, msg actor.ActorMessage) {
 	t := msg.Message.(Transaction)
 	switch t.T {
 	case PRODUCE:
@@ -67,18 +67,18 @@ func (p *Producer) Receive(a *actor.Actor, msg actor.ActorMessage) {
 }
 
 type ConsumerAck struct {
-	Producer *actor.Actor
+	Producer actor.Actor
 	Product  string
 }
 
 type Consumer struct {
 }
 
-func (*Consumer) Setup(*actor.Actor) {
+func (*Consumer) Setup(*actor.ReceiverActor) {
 
 }
 
-func (*Consumer) Receive(a *actor.Actor, msg actor.ActorMessage) {
+func (*Consumer) Receive(a *actor.ReceiverActor, msg actor.ActorMessage) {
 	switch msg.Message.(type) {
 	case Transaction:
 		a.ScheduleOnce(ConsumerAck{msg.Sender, msg.Message.(Transaction).Product}, 3*time.Second)
@@ -121,9 +121,9 @@ func main() {
 	// ta.Send(actor.MakeMessage(9, nil))
 	// ta.Send(actor.MakeMessage(GetCounter, nil))
 
-	consumer := as.Spawn("Consumer", &Consumer{})
+	consumer := as.Spawn(actor.NewReceiverActor("consumer", &Consumer{}, logger.Named("consumer")))
 
-	as.Spawn("Producer", &Producer{0, consumer})
+	as.Spawn(actor.NewReceiverActor("producer", &Producer{0, consumer}, logger.Named("producer")))
 
 	go func() {
 		<-sigChan

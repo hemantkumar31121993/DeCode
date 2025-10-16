@@ -9,11 +9,11 @@ type ActorMessage struct {
 	Message interface{}
 
 	// Sender is the reference to the sender of the message.
-	Sender *Actor
+	Sender Actor
 }
 
 func (am ActorMessage) String() string {
-	return fmt.Sprintf("actor.ActorMessage{Message: %#v, Sender: %s}", am.Message, am.Sender.id)
+	return fmt.Sprintf("actor.ActorMessage{Message: %#v, Sender: %s}", am.Message, am.Sender.ID())
 }
 
 type PoisonPill struct {

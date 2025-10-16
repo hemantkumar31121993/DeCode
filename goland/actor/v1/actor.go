@@ -7,41 +7,41 @@ import (
 	"go.uber.org/zap"
 )
 
-type Actor struct {
+type ReceiverActor struct {
 	id       string
 	name     string
 	closed   bool
 	ch       chan ActorMessage
 	poisonCh chan PoisonPill
-	children map[string]*Actor
-	receiver ActorReceiver
+	children map[string]Actor
+	receiver Receiver
 	logger   *zap.Logger
 }
 
-func (a *Actor) Logger() *zap.Logger {
+func (a *ReceiverActor) Logger() *zap.Logger {
 	return a.logger
 }
 
-func (a *Actor) ID() string {
+func (a *ReceiverActor) ID() string {
 	return a.id
 }
 
-func (a *Actor) Name() string {
+func (a *ReceiverActor) Name() string {
 	return a.name
 }
 
-func (a *Actor) SendTo(t *Actor, msg interface{}) error {
+func (a *ReceiverActor) SendTo(t Actor, msg interface{}) error {
 	return t.send(ActorMessage{msg, a})
 }
 
-func (a *Actor) poison() {
+func (a *ReceiverActor) poison() {
 	ch := make(chan int)
 	defer close(ch)
 	a.poisonCh <- PoisonPill{ch}
 	<-ch
 }
 
-func (a *Actor) send(msg ActorMessage) error {
+func (a *ReceiverActor) send(msg ActorMessage) error {
 	if !a.closed {
 		a.ch <- msg
 		return nil
@@ -50,14 +50,12 @@ func (a *Actor) send(msg ActorMessage) error {
 	}
 }
 
-func (a *Actor) Spawn(name string, receiver ActorReceiver) *Actor {
-	id := makeID(name)
-	sa := newActor(a.id+"/"+id, name, receiver, a.logger.Named(id))
-	a.children[id] = sa
+func (a *ReceiverActor) Spawn(sa Actor) Actor {
+	a.children[sa.ID()] = sa
 	return sa
 }
 
-func (a *Actor) Schedule(message interface{}, duration time.Duration) {
+func (a *ReceiverActor) Schedule(message interface{}, duration time.Duration) {
 	t := time.NewTicker(duration)
 	go func() {
 		for range t.C {
@@ -66,7 +64,7 @@ func (a *Actor) Schedule(message interface{}, duration time.Duration) {
 	}()
 }
 
-func (a *Actor) ScheduleOnce(message interface{}, delay time.Duration) {
+func (a *ReceiverActor) ScheduleOnce(message interface{}, delay time.Duration) {
 	t := time.NewTimer(delay)
 	go func() {
 		<-t.C
@@ -74,7 +72,7 @@ func (a *Actor) ScheduleOnce(message interface{}, delay time.Duration) {
 	}()
 }
 
-func (a *Actor) start() {
+func (a *ReceiverActor) start() {
 	a.logger.Debug("Starting")
 
 	for {
@@ -107,14 +105,15 @@ func (a *Actor) start() {
 	}
 }
 
-func newActor(id, name string, receiver ActorReceiver, logger *zap.Logger) *Actor {
+func NewReceiverActor(name string, receiver Receiver, logger *zap.Logger) Actor {
 	ch := make(chan ActorMessage, 1024)
-	a := &Actor{id: id,
+	id := makeID(name)
+	a := &ReceiverActor{id: id,
 		name:     name,
 		ch:       ch,
 		closed:   false,
 		poisonCh: make(chan PoisonPill),
-		children: make(map[string]*Actor),
+		children: make(map[string]Actor),
 		receiver: receiver,
 		logger:   logger}
 	go a.start()
