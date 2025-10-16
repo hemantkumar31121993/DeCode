@@ -2,18 +2,18 @@ package actor
 
 type Receiver interface {
 	// Setup puts initial set of messages for the self. Use it for scheduled messages.
-	Setup(a *ReceiverActor)
+	Setup(a Actor)
 
 	// Receive processes the messages.
 	// a is the reference to the actor.
 	// am is the received message.
-	Receive(a *ReceiverActor, am ActorMessage)
+	Receive(a Actor, am ActorMessage)
 }
 
 type EmptyReceiver struct{}
 
-func (*EmptyReceiver) Receive(*ReceiverActor, ActorMessage) {
+func (*EmptyReceiver) Receive(Actor, ActorMessage) {
 
 }
 
-func (*EmptyReceiver) Setup(*ReceiverActor) {}
+func (*EmptyReceiver) Setup(Actor) {}

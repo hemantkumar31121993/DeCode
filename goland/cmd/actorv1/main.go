@@ -50,11 +50,11 @@ type Producer struct {
 	consumer actor.Actor
 }
 
-func (*Producer) Setup(a *actor.ReceiverActor) {
+func (*Producer) Setup(a actor.Actor) {
 	a.Schedule(Transaction{PRODUCE, ""}, 5*time.Second)
 }
 
-func (p *Producer) Receive(a *actor.ReceiverActor, msg actor.ActorMessage) {
+func (p *Producer) Receive(a actor.Actor, msg actor.ActorMessage) {
 	t := msg.Message.(Transaction)
 	switch t.T {
 	case PRODUCE:
@@ -74,11 +74,11 @@ type ConsumerAck struct {
 type Consumer struct {
 }
 
-func (*Consumer) Setup(*actor.ReceiverActor) {
+func (*Consumer) Setup(actor.Actor) {
 
 }
 
-func (*Consumer) Receive(a *actor.ReceiverActor, msg actor.ActorMessage) {
+func (*Consumer) Receive(a actor.Actor, msg actor.ActorMessage) {
 	switch msg.Message.(type) {
 	case Transaction:
 		a.ScheduleOnce(ConsumerAck{msg.Sender, msg.Message.(Transaction).Product}, 3*time.Second)
