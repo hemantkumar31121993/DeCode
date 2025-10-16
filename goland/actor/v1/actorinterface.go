@@ -17,4 +17,5 @@ type Actor interface {
 	Schedule(message interface{}, duration time.Duration)
 	ScheduleOnce(message interface{}, delay time.Duration)
 	start()
+	setup()
 }

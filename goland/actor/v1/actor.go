@@ -52,6 +52,8 @@ func (a *ReceiverActor) send(msg ActorMessage) error {
 
 func (a *ReceiverActor) Spawn(sa Actor) Actor {
 	a.children[sa.ID()] = sa
+	go sa.start()
+	go sa.setup()
 	return sa
 }
 
@@ -70,6 +72,10 @@ func (a *ReceiverActor) ScheduleOnce(message interface{}, delay time.Duration) {
 		<-t.C
 		a.SendTo(a, message)
 	}()
+}
+
+func (a *ReceiverActor) setup() {
+	a.receiver.Setup(a)
 }
 
 func (a *ReceiverActor) start() {
@@ -108,15 +114,15 @@ func (a *ReceiverActor) start() {
 func NewReceiverActor(name string, receiver Receiver, logger *zap.Logger) Actor {
 	ch := make(chan ActorMessage, 1024)
 	id := makeID(name)
-	a := &ReceiverActor{id: id,
+	a := &ReceiverActor{
+		id:       id,
 		name:     name,
 		ch:       ch,
 		closed:   false,
 		poisonCh: make(chan PoisonPill),
 		children: make(map[string]Actor),
 		receiver: receiver,
-		logger:   logger}
-	go a.start()
-	go receiver.Setup(a)
+		logger:   logger,
+	}
 	return a
 }

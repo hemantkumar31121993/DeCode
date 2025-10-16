@@ -33,7 +33,10 @@ func (as *ActorSystem) Wait() {
 func NewActorSystem(name string, logger *zap.Logger) *ActorSystem {
 	log := logger.Named("ActorSystem[" + name + "]")
 	log.Debug("starting the actor system")
-	as := &ActorSystem{name: name, root: NewReceiverActor("root", &EmptyReceiver{}, log.Named("root")), logger: log}
+	root := NewReceiverActor("root", &EmptyReceiver{}, log.Named("root"))
+	as := &ActorSystem{name: name, root: root, logger: log}
+	go root.start()
+	go root.setup()
 	as.wg.Add(1)
 	return as
 }
