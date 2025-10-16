@@ -18,10 +18,11 @@ func (as *ActorSystem) Spawn(name string, receiver ActorReceiver) *Actor {
 }
 
 func (as *ActorSystem) Shutdown() {
-	ch := make(chan int)
-	defer close(ch)
-	as.root.poisonCh <- PoisonPill{ch}
-	<-ch
+	// ch := make(chan int)
+	// defer close(ch)
+	// as.root.poisonCh <- PoisonPill{ch}
+	// <-ch
+	as.root.poison()
 	as.wg.Done()
 }
 

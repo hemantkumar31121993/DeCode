@@ -34,6 +34,13 @@ func (a *Actor) SendTo(t *Actor, msg interface{}) error {
 	return t.send(ActorMessage{msg, a})
 }
 
+func (a *Actor) poison() {
+	ch := make(chan int)
+	defer close(ch)
+	a.poisonCh <- PoisonPill{ch}
+	<-ch
+}
+
 func (a *Actor) send(msg ActorMessage) error {
 	if !a.closed {
 		a.ch <- msg
@@ -79,12 +86,15 @@ func (a *Actor) start() {
 			a.poisonCh = nil
 			ch := make(chan int)
 			defer close(ch)
+			// for _, ca := range a.children {
+			// 	ca.poisonCh <- PoisonPill{ch}
+			// }
+			// time.Sleep(1 * time.Second)
+			// for range a.children {
+			// 	<-ch
+			// }
 			for _, ca := range a.children {
-				ca.poisonCh <- PoisonPill{ch}
-			}
-			time.Sleep(1 * time.Second)
-			for range a.children {
-				<-ch
+				ca.poison()
 			}
 			a.children = nil
 			a.logger.Debug("Terminating")
