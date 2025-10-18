@@ -30,8 +30,12 @@ func (a *ReceiverActor) Name() string {
 	return a.name
 }
 
+func (a *ReceiverActor) Closed() bool {
+	return a.closed
+}
+
 func (a *ReceiverActor) SendTo(t Actor, msg interface{}) error {
-	return t.send(ActorMessage{msg, a})
+	return t.queue(ActorMessage{msg, a})
 }
 
 func (a *ReceiverActor) poison() {
@@ -41,8 +45,8 @@ func (a *ReceiverActor) poison() {
 	<-ch
 }
 
-func (a *ReceiverActor) send(msg ActorMessage) error {
-	if !a.closed {
+func (a *ReceiverActor) queue(msg ActorMessage) error {
+	if !a.Closed() {
 		a.ch <- msg
 		return nil
 	} else {
@@ -88,8 +92,8 @@ func (a *ReceiverActor) start() {
 			a.closed = true
 			a.ch = nil
 			a.poisonCh = nil
-			ch := make(chan int)
-			defer close(ch)
+			// ch := make(chan int)
+			// defer close(ch)
 			// for _, ca := range a.children {
 			// 	ca.poisonCh <- PoisonPill{ch}
 			// }
@@ -111,7 +115,7 @@ func (a *ReceiverActor) start() {
 	}
 }
 
-func NewReceiverActor(name string, receiver Receiver, logger *zap.Logger) Actor {
+func NewReceiverActor(name string, receiver Receiver, logger *zap.Logger) *ReceiverActor {
 	ch := make(chan ActorMessage, 1024)
 	id := makeID(name)
 	a := &ReceiverActor{

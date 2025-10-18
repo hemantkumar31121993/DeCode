@@ -58,11 +58,10 @@ func (p *Producer) Receive(a actor.Actor, msg actor.ActorMessage) {
 	t := msg.Message.(Transaction)
 	switch t.T {
 	case PRODUCE:
-		// p.consumer.Send(actor.MakeMessage(Transaction{CONSUME, fmt.Sprintf("product:%d", p.counter)}, a))
 		a.SendTo(p.consumer, Transaction{CONSUME, fmt.Sprintf("product:%d", p.counter)})
 		p.counter++
 	case COMSUME_ACK:
-		a.Logger().Info("consumer consumed product " + t.Product)
+		a.Logger().Info("consumer " + msg.Sender.ID() + " consumed product " + t.Product)
 	}
 }
 
@@ -85,7 +84,6 @@ func (*Consumer) Receive(a actor.Actor, msg actor.ActorMessage) {
 
 	case ConsumerAck:
 		mack := msg.Message.(ConsumerAck)
-		// msg.Message.(ConsumerAck).Producer.Send(actor.MakeMessage(Transaction{COMSUME_ACK, msg.Message.(ConsumerAck).Product}, a))
 		a.SendTo(mack.Producer, Transaction{COMSUME_ACK, msg.Message.(ConsumerAck).Product})
 	}
 }
@@ -121,9 +119,14 @@ func main() {
 	// ta.Send(actor.MakeMessage(9, nil))
 	// ta.Send(actor.MakeMessage(GetCounter, nil))
 
-	consumer := as.Spawn(actor.NewReceiverActor("consumer", &Consumer{}, logger.Named("consumer")))
+	consumerRRBalancer := as.Spawn(actor.NewRoundRobinBalancer("consumer balancer", logger.Named("consumerRRBalancer")))
 
-	as.Spawn(actor.NewReceiverActor("producer", &Producer{0, consumer}, logger.Named("producer")))
+	consumerRRBalancer.Spawn(actor.NewReceiverActor("consumer1", &Consumer{}, logger.Named("consumer1")))
+	consumerRRBalancer.Spawn(actor.NewReceiverActor("consumer2", &Consumer{}, logger.Named("consumer2")))
+	consumerRRBalancer.Spawn(actor.NewReceiverActor("consumer3", &Consumer{}, logger.Named("consumer3")))
+	consumerRRBalancer.Spawn(actor.NewReceiverActor("consumer4", &Consumer{}, logger.Named("consumer4")))
+
+	as.Spawn(actor.NewReceiverActor("producer", &Producer{0, consumerRRBalancer}, logger.Named("producer")))
 
 	go func() {
 		<-sigChan
