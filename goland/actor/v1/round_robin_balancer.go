@@ -33,7 +33,7 @@ func (r *RoundRobinBalancer) Closed() bool {
 }
 
 func (r *RoundRobinBalancer) SendTo(t Actor, msg interface{}) error {
-	r.logger.Debug("RoundRobinBalance does not send mesaage to another actor")
+	r.logger.Debug("RoundRobinBalancer does not send mesaage to another actor")
 	return nil
 }
 
