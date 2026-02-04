@@ -79,7 +79,7 @@ func (a *ReceiverActor) ScheduleOnce(message interface{}, delay time.Duration) {
 }
 
 func (a *ReceiverActor) setup() {
-	a.receiver.Setup(a)
+	a.receiver.Setup(SelfActor{a})
 }
 
 func (a *ReceiverActor) start() {
@@ -110,7 +110,7 @@ func (a *ReceiverActor) start() {
 			return
 		case msg := <-a.ch:
 			a.logger.Sugar().Debugf("got the message: %s", msg)
-			a.receiver.Receive(a, msg)
+			a.receiver.Receive(SelfActor{a}, msg)
 		}
 	}
 }

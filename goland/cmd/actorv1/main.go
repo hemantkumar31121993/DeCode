@@ -50,18 +50,18 @@ type ProducerReceiver struct {
 	consumer actor.Actor
 }
 
-func (*ProducerReceiver) Setup(a actor.Actor) {
-	a.Schedule(Transaction{PRODUCE, ""}, 5*time.Second)
+func (*ProducerReceiver) Setup(s actor.SelfActor) {
+	s.Schedule(Transaction{PRODUCE, ""}, 5*time.Second)
 }
 
-func (p *ProducerReceiver) Receive(a actor.Actor, pc actor.Postcard) {
+func (p *ProducerReceiver) Receive(s actor.SelfActor, pc actor.Postcard) {
 	t := pc.Message.(Transaction)
 	switch t.T {
 	case PRODUCE:
-		a.SendTo(p.consumer, Transaction{CONSUME, fmt.Sprintf("product:%d", p.counter)})
+		s.SendTo(p.consumer, Transaction{CONSUME, fmt.Sprintf("product:%d", p.counter)})
 		p.counter++
 	case COMSUME_ACK:
-		a.Logger().Info("consumer " + pc.Sender.ID() + " consumed product " + t.Product)
+		s.Logger().Info("consumer " + pc.Sender.ID() + " consumed product " + t.Product)
 	}
 }
 
@@ -72,18 +72,18 @@ type ConsumerAck struct {
 
 type ConsumerReceiver struct{}
 
-func (*ConsumerReceiver) Setup(actor.Actor) {
+func (*ConsumerReceiver) Setup(actor.SelfActor) {
 
 }
 
-func (*ConsumerReceiver) Receive(a actor.Actor, msg actor.Postcard) {
+func (*ConsumerReceiver) Receive(s actor.SelfActor, msg actor.Postcard) {
 	switch msg.Message.(type) {
 	case Transaction:
-		a.ScheduleOnce(ConsumerAck{msg.Sender, msg.Message.(Transaction).Product}, 3*time.Second)
+		s.ScheduleOnce(ConsumerAck{msg.Sender, msg.Message.(Transaction).Product}, 3*time.Second)
 
 	case ConsumerAck:
 		mack := msg.Message.(ConsumerAck)
-		a.SendTo(mack.Producer, Transaction{COMSUME_ACK, msg.Message.(ConsumerAck).Product})
+		s.SendTo(mack.Producer, Transaction{COMSUME_ACK, msg.Message.(ConsumerAck).Product})
 	}
 }
 
