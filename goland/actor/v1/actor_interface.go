@@ -12,7 +12,7 @@ type Actor interface {
 	Name() string
 	Closed() bool
 	SendTo(t Actor, msg interface{}) error
-	queue(msg ActorMessage) error
+	queue(msg Postcard) error
 	poison()
 	Spawn(a Actor) Actor
 	Schedule(message interface{}, duration time.Duration)

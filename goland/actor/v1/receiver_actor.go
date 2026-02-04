@@ -11,7 +11,7 @@ type ReceiverActor struct {
 	id       string
 	name     string
 	closed   bool
-	ch       chan ActorMessage
+	ch       chan Postcard
 	poisonCh chan PoisonPill
 	children map[string]Actor
 	receiver Receiver
@@ -35,7 +35,7 @@ func (a *ReceiverActor) Closed() bool {
 }
 
 func (a *ReceiverActor) SendTo(t Actor, msg interface{}) error {
-	return t.queue(ActorMessage{msg, a})
+	return t.queue(Postcard{msg, a})
 }
 
 func (a *ReceiverActor) poison() {
@@ -45,9 +45,9 @@ func (a *ReceiverActor) poison() {
 	<-ch
 }
 
-func (a *ReceiverActor) queue(msg ActorMessage) error {
+func (a *ReceiverActor) queue(p Postcard) error {
 	if !a.Closed() {
-		a.ch <- msg
+		a.ch <- p
 		return nil
 	} else {
 		return fmt.Errorf("actor has been shutdown")
@@ -116,7 +116,7 @@ func (a *ReceiverActor) start() {
 }
 
 func NewReceiverActor(name string, receiver Receiver, logger *zap.Logger) *ReceiverActor {
-	ch := make(chan ActorMessage, 1024)
+	ch := make(chan Postcard, 1024)
 	id := makeID(name)
 	a := &ReceiverActor{
 		id:       id,

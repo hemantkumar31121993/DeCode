@@ -37,7 +37,7 @@ func (r *RoundRobinBalancer) SendTo(t Actor, msg interface{}) error {
 	return nil
 }
 
-func (r *RoundRobinBalancer) queue(msg ActorMessage) error {
+func (r *RoundRobinBalancer) queue(msg Postcard) error {
 	for ad := r.downstream[r.activeIndex]; !ad.Closed(); {
 		r.activeIndex = (r.activeIndex + 1) % len(r.downstream)
 		ad.queue(msg)

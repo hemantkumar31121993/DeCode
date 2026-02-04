@@ -23,7 +23,7 @@ func (t *TestActorReciver) Setup(a *actor.ReceiverActor) {
 
 }
 
-func (t *TestActorReciver) Receive(a *actor.ReceiverActor, msg actor.ActorMessage) {
+func (t *TestActorReciver) Receive(a *actor.ReceiverActor, msg actor.Postcard) {
 	t.counter++
 	switch msg.Message.(type) {
 	case string:
@@ -45,23 +45,23 @@ type Transaction struct {
 	Product string
 }
 
-type Producer struct {
+type ProducerReceiver struct {
 	counter  int
 	consumer actor.Actor
 }
 
-func (*Producer) Setup(a actor.Actor) {
+func (*ProducerReceiver) Setup(a actor.Actor) {
 	a.Schedule(Transaction{PRODUCE, ""}, 5*time.Second)
 }
 
-func (p *Producer) Receive(a actor.Actor, msg actor.ActorMessage) {
-	t := msg.Message.(Transaction)
+func (p *ProducerReceiver) Receive(a actor.Actor, pc actor.Postcard) {
+	t := pc.Message.(Transaction)
 	switch t.T {
 	case PRODUCE:
 		a.SendTo(p.consumer, Transaction{CONSUME, fmt.Sprintf("product:%d", p.counter)})
 		p.counter++
 	case COMSUME_ACK:
-		a.Logger().Info("consumer " + msg.Sender.ID() + " consumed product " + t.Product)
+		a.Logger().Info("consumer " + pc.Sender.ID() + " consumed product " + t.Product)
 	}
 }
 
@@ -70,14 +70,13 @@ type ConsumerAck struct {
 	Product  string
 }
 
-type Consumer struct {
+type ConsumerReceiver struct{}
+
+func (*ConsumerReceiver) Setup(actor.Actor) {
+
 }
 
-func (*Consumer) Setup(actor.Actor) {
-
-}
-
-func (*Consumer) Receive(a actor.Actor, msg actor.ActorMessage) {
+func (*ConsumerReceiver) Receive(a actor.Actor, msg actor.Postcard) {
 	switch msg.Message.(type) {
 	case Transaction:
 		a.ScheduleOnce(ConsumerAck{msg.Sender, msg.Message.(Transaction).Product}, 3*time.Second)
@@ -121,12 +120,12 @@ func main() {
 
 	consumerRRBalancer := as.Spawn(actor.NewRoundRobinBalancer("consumer balancer", logger.Named("consumerRRBalancer")))
 
-	consumerRRBalancer.Spawn(actor.NewReceiverActor("consumer1", &Consumer{}, logger.Named("consumer1")))
-	consumerRRBalancer.Spawn(actor.NewReceiverActor("consumer2", &Consumer{}, logger.Named("consumer2")))
-	consumerRRBalancer.Spawn(actor.NewReceiverActor("consumer3", &Consumer{}, logger.Named("consumer3")))
-	consumerRRBalancer.Spawn(actor.NewReceiverActor("consumer4", &Consumer{}, logger.Named("consumer4")))
+	consumerRRBalancer.Spawn(actor.NewReceiverActor("consumer1", &ConsumerReceiver{}, logger.Named("consumer1")))
+	consumerRRBalancer.Spawn(actor.NewReceiverActor("consumer2", &ConsumerReceiver{}, logger.Named("consumer2")))
+	consumerRRBalancer.Spawn(actor.NewReceiverActor("consumer3", &ConsumerReceiver{}, logger.Named("consumer3")))
+	consumerRRBalancer.Spawn(actor.NewReceiverActor("consumer4", &ConsumerReceiver{}, logger.Named("consumer4")))
 
-	as.Spawn(actor.NewReceiverActor("producer", &Producer{0, consumerRRBalancer}, logger.Named("producer")))
+	as.Spawn(actor.NewReceiverActor("producer", &ProducerReceiver{counter: 0, consumer: consumerRRBalancer}, logger.Named("producer")))
 
 	go func() {
 		<-sigChan

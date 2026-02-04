@@ -2,8 +2,8 @@ package actor
 
 import "fmt"
 
-// ActorMessage is the container for the communication message.
-type ActorMessage struct {
+// Postcard is the container for the communication message.
+type Postcard struct {
 
 	// Message contains the actual message.
 	Message interface{}
@@ -12,8 +12,8 @@ type ActorMessage struct {
 	Sender Actor
 }
 
-func (am ActorMessage) String() string {
-	return fmt.Sprintf("actor.ActorMessage{Message: %#v, Sender: %s}", am.Message, am.Sender.ID())
+func (p Postcard) String() string {
+	return fmt.Sprintf("actor.Postcard{Message: %#v, Sender: %s}", p.Message, p.Sender.ID())
 }
 
 type PoisonPill struct {

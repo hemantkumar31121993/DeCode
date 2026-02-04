@@ -18,10 +18,6 @@ func (as *ActorSystem) Spawn(a Actor) Actor {
 }
 
 func (as *ActorSystem) Shutdown() {
-	// ch := make(chan int)
-	// defer close(ch)
-	// as.root.poisonCh <- PoisonPill{ch}
-	// <-ch
 	as.root.poison()
 	as.wg.Done()
 }
